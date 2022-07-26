@@ -3,6 +3,7 @@
 #define EPOLL_MSAFD_H_
 
 #include <windows.h>
+#include <winioctl.h>
 #include "ntapi.h"
 
 #ifndef SIO_BASE_HANDLE
