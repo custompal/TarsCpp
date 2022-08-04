@@ -30,6 +30,19 @@ endforeach()
 
 add_library(${TARGETNAME} ${DIR_SRCS} ${DEPENDS_SRC_LIST})
 
+#重新定义__FILE__
+define_filename_macro(${TARGETNAME})
+
+target_compile_options(${TARGETNAME}
+    PRIVATE ${COMPILE_OPTIONS_DEFAULT}
+)
+target_link_libraries(${TARGETNAME}
+    PUBLIC tarsutil
+)
+target_include_directories(${TARGETNAME}
+    PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+)
+
 if(UNIX)
     add_dependencies(${TARGETNAME} COPY-LEX-YACC)
 endif(UNIX)

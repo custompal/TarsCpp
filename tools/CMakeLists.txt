@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.2)
 project(tools)
 
-include_directories(${util_SOURCE_DIR}/include)
+#include_directories(${util_SOURCE_DIR}/include)
 
-link_libraries(tarsutil)
+#link_libraries(tarsutil)
 
 function(tars2language TARGET)
     set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
@@ -13,13 +13,22 @@ function(tars2language TARGET)
         set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/bin)
     endforeach()
 
-    include_directories(${PROJECT_SOURCE_DIR}/tarsparse)
+    #include_directories(${PROJECT_SOURCE_DIR}/tarsparse)
 
     aux_source_directory(. DIR_SRCS)
 
-    link_libraries(tarsparse)
+    #link_libraries(tarsparse)
 
     add_executable(${TARGET} ${DIR_SRCS})
+    define_filename_macro(${TARGET})
+    target_compile_options(${TARGET}
+        PRIVATE ${COMPILE_OPTIONS_DEFAULT}
+    )
+    if (LINUX)
+        target_link_libraries(${TARGET} -Wl,--start-group tarsparse -Wl,--end-group)
+    else ()
+        target_link_libraries(${TARGET} tarsparse)
+    endif ()
 
     install(TARGETS ${TARGET}
             RUNTIME DESTINATION tools)

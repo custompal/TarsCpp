@@ -5,7 +5,7 @@ project(servant)
 # if(TARS_OPENTRACKING)
 # include_directories(${util_SOURCE_DIR}/include ${OPENTRACKING_INC})
 # else()
-include_directories(${util_SOURCE_DIR}/include)
+#include_directories(${util_SOURCE_DIR}/include)
 # endif()
 
 #调用tars2cpp, 生成tars对应的文件

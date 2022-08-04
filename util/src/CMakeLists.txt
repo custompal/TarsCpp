@@ -1,7 +1,8 @@
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
+set(DIR_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 IF(WIN32)
-include_directories(epoll_windows)
+list(APPEND DIR_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/epoll_windows)
 aux_source_directory(epoll_windows/src. DIR_SRCS)
 ENDIF()
 
@@ -26,6 +27,24 @@ list(APPEND DIR_SRCS ${MAKE_SRC})
 
 add_library(tarsutil ${DIR_SRCS})
 add_dependencies(tarsutil thirdparty)
+
+#重新定义__FILE__
+define_filename_macro(tarsutil)
+
+set(COMPILE_DEFINITIONS ${TARSCPP_COMPILE_DEFINITIONS})
+set(LINK_LIBRARIES ${TARSCPP_LINK_LIBRARIES})
+target_compile_definitions(tarsutil
+    PUBLIC ${COMPILE_DEFINITIONS}
+)
+target_compile_options(tarsutil
+    PRIVATE ${COMPILE_OPTIONS_DEFAULT}
+)
+target_link_libraries(tarsutil
+    PUBLIC ${LINK_LIBRARIES}
+)
+target_include_directories(tarsutil
+    PUBLIC "$<BUILD_INTERFACE:${DIR_INCLUDES}>"
+)
 
 install(TARGETS tarsutil
         LIBRARY DESTINATION lib
