@@ -1438,10 +1438,28 @@ bool TC_Common::equal(const unordered_map<K, V, D, A>& mx , const unordered_map<
 }
 
 #if TARGET_PLATFORM_WINDOWS
-#define __filename__(x) (strrchr(x, '\\') ? strrchr(x, '\\') + 1 : x)
-#define FILE_FUNC_LINE "[" << __filename__(__FILE__) << "::" << __FUNCTION__ << "::" << __LINE__ << "]"
+static inline const char *getFileName(const char *file)
+{
+    auto pos = strrchr(file, '/');
+    if (!pos)
+    {
+        pos = strrchr(file, '\\');
+    }
+    return pos ? pos + 1 : file;
+}
+
+static inline const char *getFunctionName(const char *func)
+{
+    auto pos = strrchr(func, ':');
+    return pos ? pos + 1 : func;
+}
+//#define __filename__(x) (strrchr(x, '\\') ? strrchr(x, '\\') + 1 : x)
+//#define __funcname__(x) (strrchr(x, ':') ? strrchr(x, ':') + 1 : x)
+//#define FILE_FUNC_LINE "[" << __filename__(__FILE__) << "::" << __FUNCTION__ << "::" << __LINE__ << "]"
+#define FILE_FUNC_LINE getFileName(__FILE__) << ":" << getFunctionName(__FUNCTION__) << ":" << __LINE__
 #else
-#define FILE_FUNC_LINE "[" << __FILE__ << "::" << __FUNCTION__ << "::" << __LINE__ << "]"
+//#define FILE_FUNC_LINE "[" << __FILE__ << "::" << __FUNCTION__ << "::" << __LINE__ << "]"
+#define FILE_FUNC_LINE __FILE__ << ":" << __FUNCTION__ << ":" << __LINE__
 #endif
 
 }

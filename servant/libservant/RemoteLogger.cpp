@@ -38,8 +38,20 @@ RollWriteT::~RollWriteT()
     }
 }
 
-void RollWriteT::operator()(ostream &of, const deque<pair<size_t, string> > &ds)
+void RollWriteT::operator()(ostream &of, const deque<pair<size_t, string> > &ds, bool enable_color)
 {
+#if defined(ENABLE_CONSOLELOG_COLOR)
+    if (of && !ds.empty())
+    {
+        try
+        {
+            _wt(cout, ds, true);
+        } catch (...)
+        {
+        }
+    }
+#endif
+
     vector<string> vRemoteDyeing;
 
     deque<pair<size_t, string> >::const_iterator it = ds.begin();
@@ -146,7 +158,7 @@ void LocalRollLogger::setLogInfo(const string &sApp, const string &sServer, cons
     //初始化本地循环日志
     _logger.init(_logpath + FILE_SEP + _app + FILE_SEP + _server + FILE_SEP + _app + "." + _server, iMaxSize, iMaxNum);
     _logger.modFlag(TC_DayLogger::HAS_TIME, false);
-    _logger.modFlag(TC_DayLogger::HAS_TIME|TC_DayLogger::HAS_LEVEL|TC_DayLogger::HAS_PID, true);
+    _logger.modFlag(TC_DayLogger::HAS_MTIME|TC_DayLogger::HAS_LEVEL|TC_DayLogger::HAS_PID, true);
 
     //设置为异步
     sync(false);
@@ -285,7 +297,7 @@ void RemoteTimeWriteT::setTimeWriteT(TimeWriteT *pTimeWrite)
     _timeWrite = pTimeWrite;
 }
 
-void RemoteTimeWriteT::operator()(ostream &of, const deque<pair<size_t, string> > &buffer)
+void RemoteTimeWriteT::operator()(ostream &of, const deque<pair<size_t, string> > &buffer, bool enable_color)
 {
     const static uint32_t len = 2000;
 
@@ -463,14 +475,14 @@ void TimeWriteT::enableLocal(bool bEnable)
     }
 }
 
-void TimeWriteT::operator()(ostream &of, const deque<pair<size_t, string> > &buffer)
+void TimeWriteT::operator()(ostream &of, const deque<pair<size_t, string> > &buffer, bool enable_color)
 {
 
     if(_local && of && !buffer.empty())
     {
         try
         {
-            _wt(of, buffer);
+            _wt(of, buffer, enable_color);
         }
         catch(...)
         {

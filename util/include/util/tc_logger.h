@@ -45,6 +45,34 @@
 using namespace std;
 namespace tars
 {
+#if TARGET_PLATFORM_WINDOWS
+#define CLEAR_COLOR 7
+static const WORD LOG_CONST_TABLE[][3] = {
+    {0xC7, 0x0C, 'E'}, //红底灰字，黑底红字
+    {0xE7, 0x0E, 'W'}, //黄底灰字，黑底黄字
+    {0xB7, 0x0B, 'I'}, //天蓝底灰字，黑底天蓝字
+    {0xA7, 0x0A, 'D'}, //绿底灰字，黑底绿字
+    {0x97, 0x09, 'T'}}; //蓝底灰字，黑底蓝字，window console默认黑底
+
+static bool SetConsoleColor(WORD Color)
+{
+    HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (handle == 0)
+        return false;
+
+    BOOL ret = SetConsoleTextAttribute(handle, Color);
+    return (ret == TRUE);
+}
+#else
+#define CLEAR_COLOR "\033[0m"
+static const char *LOG_CONST_TABLE[][3] = {
+        {"\033[41;37m", "\033[31m", "E"},
+        {"\033[43;37m", "\033[33m", "W"},
+        {"\033[46;37m", "\033[36m", "I"},
+        {"\033[42;37m", "\033[32m", "D"},
+        {"\033[44;37m", "\033[34m", "T"}};
+#endif
+
 	/////////////////////////////////////////////////
 	/**
 	 * @file tc_logger.h
@@ -133,12 +161,50 @@ namespace tars
 	class TC_DefaultWriteT
 	{
 	public:
-		void operator()(ostream &of, const deque<pair<size_t, string> > &ds)
+		void operator()(ostream &of, const deque<pair<size_t, string> > &ds, bool enable_color = false)
 		{
 			deque<pair<size_t, string> >::const_iterator it = ds.begin();
 			while (it != ds.end())
 			{
+#if defined(ENABLE_CONSOLELOG_COLOR)
+				if (enable_color)
+				{
+					int level = 4;
+					auto &content = it->second;
+					if (content.find("ERROR") != string::npos)
+					{
+						level = 2;
+					}
+					else if (content.find("WARN") != string::npos)
+					{
+						level = 3;
+					}
+					else if (content.find("INFO") != string::npos)
+					{
+						level = 4;
+					}
+					else if (content.find("DEBUG") != string::npos)
+					{
+						level = 5;
+					}
+#if TARGET_PLATFORM_WINDOWS
+					SetConsoleColor(LOG_CONST_TABLE[level - 2][1]);
+#else
+					of << LOG_CONST_TABLE[level - 2][1];
+#endif
+				}
+#endif
 				of << it->second;
+#if defined(ENABLE_CONSOLELOG_COLOR)
+				if (enable_color)
+				{
+#if TARGET_PLATFORM_WINDOWS
+				SetConsoleColor(CLEAR_COLOR);
+#else
+				of << CLEAR_COLOR;
+#endif
+				}
+#endif
 				++it;
 			}
 			of.flush();
@@ -496,7 +562,7 @@ namespace tars
 		 * @param stream
 		 * @param mutex
 		 */
-		LoggerStream(const char *header, ostream *stream, ostream *estream, TC_ThreadMutex &mutex) : _stream(stream), _estream(estream), _mutex(mutex)
+		LoggerStream(const char *header, ostream *stream, ostream *estream, TC_ThreadMutex &mutex, bool add_newline = false) : _stream(stream), _estream(estream), _mutex(mutex), _add_newline(add_newline)
 		{
 			if (stream)
 			{
@@ -515,6 +581,10 @@ namespace tars
 				TC_LockT<TC_ThreadMutex> lock(_mutex);
 				_stream->clear();
 				(*_stream) << _buffer.str();
+				if (_add_newline)
+				{
+					(*_stream) << endl;
+				}
 				_stream->flush();
 			}
 		}
@@ -620,6 +690,11 @@ namespace tars
 		 */
 //		TC_SpinLock &_mutex;
 		TC_ThreadMutex &_mutex;
+
+		/**
+		 * 添加换行符
+		 */
+		bool _add_newline;
 	};
 
 	/**
@@ -885,7 +960,7 @@ namespace tars
 		*/
 		LoggerStream any() { return stream(0); }
 
-		LoggerStream log(int level) { return stream(level); }
+		LoggerStream log(int level, bool add_newline = false) { return stream(level, add_newline); }
 	protected:
 		/**
 		 * @brief 获取头部信息.
@@ -941,7 +1016,7 @@ namespace tars
 			}
 		}
 
-		LoggerStream stream(int level)
+		LoggerStream stream(int level, bool add_newline = false)
 		{
 			ostream *ost = NULL;
 
@@ -952,10 +1027,10 @@ namespace tars
 
 				ost = &_stream;
 
-				return LoggerStream(c, ost, &_estream, _spinMutex);
+				return LoggerStream(c, ost, &_estream, _spinMutex, add_newline);
 			}
 
-			return LoggerStream(NULL, ost, &_estream, _spinMutex);
+			return LoggerStream(NULL, ost, &_estream, _spinMutex, add_newline);
 		}
 
 		/**
@@ -1089,7 +1164,7 @@ namespace tars
 		 *@brief 按照等级来输出日志
 		 *@brief Output log by level
 		 */
-		virtual LoggerStream log(int level) = 0;
+		virtual LoggerStream log(int level, bool add_newline = false) = 0;
 		/**
 		 * @brief 如果是异步调用，则马上进行刷新
 		 * @brief If it is an asynchronous call, refresh immediately.
@@ -1374,7 +1449,7 @@ namespace tars
 
 			if (_path.empty())
 			{
-				_t(cout, buffer);
+				_t(cout, buffer, true);
 				return;
 			}
 
@@ -1856,9 +1931,10 @@ namespace tars
 
 			if (_path.empty())
 			{
-				_t(cout, buffer);
+				_t(cout, buffer, true);
 				return;
 			}
+
 			//远程日志在本地不用打开文件
 			//Remote log does not need to open files locally
 			if (_bRemoteType)

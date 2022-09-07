@@ -65,7 +65,7 @@ public:
     RollWriteT();
     ~RollWriteT();
 
-    void operator()(ostream &of, const deque<pair<size_t, string> > &ds);
+    void operator()(ostream &of, const deque<pair<size_t, string> > &ds, bool enable_color = false);
 
     void setDyeingLogInfo(const string &sApp, const string &sServer, const string & sLogPath, int iMaxSize, int iMaxNum, const LogPrx &logPrx, const string & sLogObj);
 
@@ -86,6 +86,12 @@ protected:
      */
     LogPrx                _logPrx;
 
+#if defined(ENABLE_CONSOLELOG_COLOR)
+    /**
+     * 缺省写模式
+     */
+    TC_DefaultWriteT _wt;
+#endif
 };
 
 
@@ -283,8 +289,9 @@ public:
      * 具体调用
      * @param of
      * @param buffer
+     * @param enable_color
      */
-    void operator()(ostream &of, const deque<pair<size_t, string> > &buffer);
+    void operator()(ostream &of, const deque<pair<size_t, string> > &buffer, bool enable_color = false);
 
 protected:
     /**
@@ -400,8 +407,9 @@ public:
      * 具体调用
      * @param of
      * @param buffer
+     * @param enable_color
      */
-    void operator()(ostream &of, const deque<pair<size_t, string> > &buffer);
+    void operator()(ostream &of, const deque<pair<size_t, string> > &buffer, bool enable_color = false);
 
 protected:
 
