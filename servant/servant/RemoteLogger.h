@@ -105,6 +105,7 @@ class SVT_DLL_API LocalRollLogger : public TC_Singleton<LocalRollLogger, CreateU
 public:
     enum
     {
+        TRACE_LOG   = 0,    /**不重要日志*/
         NONE_LOG    = 1,    /**所有的log都不写*/
         ERROR_LOG   = 2,    /**写错误log*/
         WARN_LOG    = 3,    /**写错误,警告log*/

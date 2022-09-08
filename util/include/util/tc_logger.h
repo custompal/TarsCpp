@@ -45,33 +45,104 @@
 using namespace std;
 namespace tars
 {
-#if TARGET_PLATFORM_WINDOWS
-#define CLEAR_COLOR 7
-static const WORD LOG_CONST_TABLE[][3] = {
-    {0xC7, 0x0C, 'E'}, //红底灰字，黑底红字
-    {0xE7, 0x0E, 'W'}, //黄底灰字，黑底黄字
-    {0xB7, 0x0B, 'I'}, //天蓝底灰字，黑底天蓝字
-    {0xA7, 0x0A, 'D'}, //绿底灰字，黑底绿字
-    {0x97, 0x09, 'T'}}; //蓝底灰字，黑底蓝字，window console默认黑底
+	#if TARGET_PLATFORM_WINDOWS
+	#define CLEAR_COLOR 7
+	static const WORD LOG_CONST_TABLE[][3] = {
+		{0xC7, 0x0C, 'E'}, //红底灰字，黑底红字
+		{0xE7, 0x0E, 'W'}, //黄底灰字，黑底黄字
+		{0xB7, 0x0B, 'I'}, //天蓝底灰字，黑底天蓝字
+		{0xA7, 0x0A, 'D'}, //绿底灰字，黑底绿字
+		{0x97, 0x09, 'T'}}; //蓝底灰字，黑底蓝字，window console默认黑底
 
-static bool SetConsoleColor(WORD Color)
-{
-    HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (handle == 0)
-        return false;
+	static bool SetConsoleColor(WORD Color)
+	{
+		HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+		if (handle == 0)
+			return false;
 
-    BOOL ret = SetConsoleTextAttribute(handle, Color);
-    return (ret == TRUE);
-}
-#else
-#define CLEAR_COLOR "\033[0m"
-static const char *LOG_CONST_TABLE[][3] = {
-        {"\033[41;37m", "\033[31m", "E"},
-        {"\033[43;37m", "\033[33m", "W"},
-        {"\033[46;37m", "\033[36m", "I"},
-        {"\033[42;37m", "\033[32m", "D"},
-        {"\033[44;37m", "\033[34m", "T"}};
-#endif
+		BOOL ret = SetConsoleTextAttribute(handle, Color);
+		return (ret == TRUE);
+	}
+	#else
+	#define CLEAR_COLOR "\033[0m"
+	static const char *LOG_CONST_TABLE[][3] = {
+			{"\033[41;37m", "\033[31m", "E"},
+			{"\033[43;37m", "\033[33m", "W"},
+			{"\033[46;37m", "\033[36m", "I"},
+			{"\033[42;37m", "\033[32m", "D"},
+			{"\033[44;37m", "\033[34m", "T"}};
+	#endif
+
+	static string GetThreadName()
+	{
+	#if ((defined(__linux) || defined(__linux__)) && !defined(ANDROID)) ||         \
+		(defined(__MACH__) || defined(__APPLE__)) ||                               \
+		(defined(ANDROID) && __ANDROID_API__ >= 26) || defined(__MINGW32__)
+		string ret;
+		ret.resize(32);
+		auto tid = pthread_self();
+		pthread_getname_np(tid, (char *)ret.data(), ret.size());
+		if (ret[0])
+		{
+			ret.resize(strlen(ret.data()));
+			return ret;
+		}
+		return to_string((uint64_t)tid);
+	#elif defined(_MSC_VER)
+		using GetThreadDescriptionFunc = HRESULT(WINAPI *)(_In_ HANDLE hThread, _In_ PWSTR * ppszThreadDescription);
+		static auto getThreadDescription =
+		reinterpret_cast<GetThreadDescriptionFunc>(::GetProcAddress(::GetModuleHandleA("Kernel32.dll"), "GetThreadDescription"));
+
+		if (!getThreadDescription)
+		{
+			std::ostringstream ss;
+			ss << std::this_thread::get_id();
+			return ss.str();
+		}
+		else
+		{
+			PWSTR data;
+			HRESULT hr = getThreadDescription(GetCurrentThread(), &data);
+			if (SUCCEEDED(hr) && data[0] != '\0')
+			{
+				char threadName[MAX_PATH];
+				size_t numCharsConverted;
+				errno_t charResult = wcstombs_s(&numCharsConverted, threadName, data, MAX_PATH - 1);
+			if (charResult == 0)
+			{
+				LocalFree(data);
+				std::ostringstream ss;
+				ss << threadName;
+				return ss.str();
+			}
+			else
+			{
+				if (data)
+				{
+					LocalFree(data);
+				}
+				return to_string((uint64_t)GetCurrentThreadId());
+			}
+			}
+			else
+			{
+				if (data)
+				{
+					LocalFree(data);
+				}
+				return to_string((uint64_t)GetCurrentThreadId());
+			}
+		}
+	#else
+		if (!thread_name.empty())
+		{
+			return thread_name;
+		}
+		std::ostringstream ss;
+		ss << std::this_thread::get_id();
+		return ss.str();
+	#endif
+	}
 
 	/////////////////////////////////////////////////
 	/**
@@ -169,28 +240,32 @@ static const char *LOG_CONST_TABLE[][3] = {
 #if defined(ENABLE_CONSOLELOG_COLOR)
 				if (enable_color)
 				{
-					int level = 4;
+					int index = 4;
 					auto &content = it->second;
+					if (content.find("TRACE") != string::npos)
+					{
+						index = 4;
+					}
 					if (content.find("ERROR") != string::npos)
 					{
-						level = 2;
+						index = 0;
 					}
 					else if (content.find("WARN") != string::npos)
 					{
-						level = 3;
+						index = 1;
 					}
 					else if (content.find("INFO") != string::npos)
 					{
-						level = 4;
+						index = 2;
 					}
 					else if (content.find("DEBUG") != string::npos)
 					{
-						level = 5;
+						index = 3;
 					}
 #if TARGET_PLATFORM_WINDOWS
-					SetConsoleColor(LOG_CONST_TABLE[level - 2][1]);
+					SetConsoleColor(LOG_CONST_TABLE[index][1]);
 #else
-					of << LOG_CONST_TABLE[level - 2][1];
+					of << LOG_CONST_TABLE[index][1];
 #endif
 				}
 #endif
@@ -738,6 +813,8 @@ static const char *LOG_CONST_TABLE[][3] = {
 		*/
 		enum
 		{
+			//不重要日志
+			TRACE_LOG_LEVEL = 0,
 			//所有的log都不写
 			//All logs are not written
 			NONE_LOG_LEVEL = 1, 
@@ -889,6 +966,10 @@ static const char *LOG_CONST_TABLE[][3] = {
 			{
 				return isNeedLog(DEBUG_LOG_LEVEL);
 			}
+			else if (level == "TRACE")
+			{
+				return isNeedLog(TRACE_LOG_LEVEL);
+			}
 			else if (level == "NONE")
 			{
 				return isNeedLog(NONE_LOG_LEVEL);
@@ -1007,7 +1088,8 @@ static const char *LOG_CONST_TABLE[][3] = {
 
 			if (hasFlag(TC_Logger::HAS_PID))
 			{
-				n += snprintf(c + n, len - n, "%zd%s", TC_Thread::CURRENT_THREADID(), _sSepar.c_str());               
+				//n += snprintf(c + n, len - n, "%zd%s", TC_Thread::CURRENT_THREADID(), _sSepar.c_str());               
+				n += snprintf(c + n, len - n, "%ld-%s%s", TC_Port::getpid(), GetThreadName().c_str(), _sSepar.c_str());
 			}
 
 			if (hasFlag(TC_Logger::HAS_LEVEL))
@@ -1116,7 +1198,7 @@ static const char *LOG_CONST_TABLE[][3] = {
 
 	template <typename WriteT, template <class> class RollPolicy>
 	//const string TC_Logger<WriteT, RollPolicy>::LN[6] = { "ANY", "NONE_LOG", "ERROR", "WARN", "DEBUG", "INFO" };
-    const string TC_Logger<WriteT, RollPolicy>::LN[] = { "ANY", "NONE_LOG", "ERROR", "WARN", "INFO", "DEBUG", "TARS" };
+    const string TC_Logger<WriteT, RollPolicy>::LN[] = { "TRACE", "NONE_LOG", "ERROR", "WARN", "INFO", "DEBUG", "TARS" };
 	////////////////////////////////////////////////////////////////////////////////
 
 	class RollWrapperInterface

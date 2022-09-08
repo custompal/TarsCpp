@@ -158,7 +158,7 @@ void LocalRollLogger::setLogInfo(const string &sApp, const string &sServer, cons
     //初始化本地循环日志
     _logger.init(_logpath + FILE_SEP + _app + FILE_SEP + _server + FILE_SEP + _app + "." + _server, iMaxSize, iMaxNum);
     _logger.modFlag(TC_DayLogger::HAS_TIME, false);
-    _logger.modFlag(TC_DayLogger::HAS_MTIME|TC_DayLogger::HAS_LEVEL|TC_DayLogger::HAS_PID, true);
+    _logger.modFlag(TC_DayLogger::HAS_TIME|TC_DayLogger::HAS_LEVEL|TC_DayLogger::HAS_PID, true);
 
     //设置为异步
     sync(false);
