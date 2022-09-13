@@ -240,7 +240,7 @@ namespace tars
 #if defined(ENABLE_CONSOLELOG_COLOR)
 				if (enable_color)
 				{
-					int index = 4;
+					int index = 2;
 					auto &content = it->second;
 					if (content.find("TRACE") != string::npos)
 					{

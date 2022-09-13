@@ -25,9 +25,9 @@ TC_RollLogger __global_logger_debug__;
 
 static int init_global_debug_log()
 {
-    __global_logger_debug__.modFlag(__global_logger_debug__.HAS_MTIME);
+    //__global_logger_debug__.modFlag(__global_logger_debug__.HAS_MTIME);
+    __global_logger_debug__.modFlag(0xfffff, false);
     return 0;
-    
 }
 static int __global_logger_debug_init__ = init_global_debug_log();
 
