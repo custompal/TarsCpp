@@ -637,7 +637,7 @@ namespace tars
 		 * @param stream
 		 * @param mutex
 		 */
-		LoggerStream(const char *header, ostream *stream, ostream *estream, TC_ThreadMutex &mutex, bool add_newline = false) : _stream(stream), _estream(estream), _mutex(mutex), _add_newline(add_newline)
+		LoggerStream(const char *header, ostream *stream, ostream *estream, TC_ThreadMutex &mutex) : _stream(stream), _estream(estream), _mutex(mutex)
 		{
 			if (stream)
 			{
@@ -656,10 +656,6 @@ namespace tars
 				TC_LockT<TC_ThreadMutex> lock(_mutex);
 				_stream->clear();
 				(*_stream) << _buffer.str();
-				if (_add_newline)
-				{
-					(*_stream) << endl;
-				}
 				_stream->flush();
 			}
 		}
@@ -765,11 +761,6 @@ namespace tars
 		 */
 //		TC_SpinLock &_mutex;
 		TC_ThreadMutex &_mutex;
-
-		/**
-		 * 添加换行符
-		 */
-		bool _add_newline;
 	};
 
 	/**
@@ -840,7 +831,7 @@ namespace tars
 		 * @brief Constructor
 		 */
 		TC_Logger()
-			: _flag(HAS_TIME), _level(DEBUG_LOG_LEVEL), _buffer(TC_LoggerRollPtr::dynamicCast(this->_roll), 1024), _stream(&_buffer), _ebuffer(NULL, 0), _estream(&_ebuffer), _sSepar("|"), _bHasSquareBracket(false)
+			: _flag(HAS_TIME), _level(DEBUG_LOG_LEVEL), _buffer(TC_LoggerRollPtr::dynamicCast(this->_roll), 1024), _stream(&_buffer), _3rd_buffer(TC_LoggerRollPtr::dynamicCast(this->_roll), 1024), _3rd_stream(&_3rd_buffer), _ebuffer(NULL, 0), _estream(&_ebuffer), _sSepar("|"), _bHasSquareBracket(false)
 		{
 		}
 
@@ -1006,6 +997,11 @@ namespace tars
 		void enableSqareWrapper(bool bEnable) { _bHasSquareBracket = bEnable; }
 
 		/**
+		 * 获取 3rd_stream
+		 */
+		std::ostream &getThirdStream() { return _3rd_stream; }
+
+		/**
 		* @brief TARS记日志
 		* @brief TARS Log
 		*/
@@ -1041,7 +1037,7 @@ namespace tars
 		*/
 		LoggerStream any() { return stream(0); }
 
-		LoggerStream log(int level, bool add_newline = false) { return stream(level, add_newline); }
+		LoggerStream log(int level) { return stream(level); }
 	protected:
 		/**
 		 * @brief 获取头部信息.
@@ -1098,7 +1094,7 @@ namespace tars
 			}
 		}
 
-		LoggerStream stream(int level, bool add_newline = false)
+		LoggerStream stream(int level)
 		{
 			ostream *ost = NULL;
 
@@ -1109,10 +1105,10 @@ namespace tars
 
 				ost = &_stream;
 
-				return LoggerStream(c, ost, &_estream, _spinMutex, add_newline);
+				return LoggerStream(c, ost, &_estream, _spinMutex);
 			}
 
-			return LoggerStream(NULL, ost, &_estream, _spinMutex, add_newline);
+			return LoggerStream(NULL, ost, &_estream, _spinMutex);
 		}
 
 		/**
@@ -1164,6 +1160,17 @@ namespace tars
 		 * Logger temporary stream
 		 */
 		std::ostream _stream;
+
+		/**
+		 * buffer
+		 */
+		LoggerBuffer _3rd_buffer;
+
+		/**
+		 * logger 给其他第三方库用的
+		 * Logger temporary stream
+		 */
+		std::ostream _3rd_stream;
 
 		/**
 		 * 空buffer
@@ -1246,7 +1253,7 @@ namespace tars
 		 *@brief 按照等级来输出日志
 		 *@brief Output log by level
 		 */
-		virtual LoggerStream log(int level, bool add_newline = false) = 0;
+		virtual LoggerStream log(int level) = 0;
 		/**
 		 * @brief 如果是异步调用，则马上进行刷新
 		 * @brief If it is an asynchronous call, refresh immediately.
