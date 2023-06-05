@@ -26,7 +26,7 @@ list(APPEND DIR_SRCS ${JUMP_SRC})
 list(APPEND DIR_SRCS ${MAKE_SRC})
 
 add_library(tarsutil ${DIR_SRCS})
-add_dependencies(tarsutil thirdparty)
+add_dependencies(tarsutil 3rdparty)
 
 #重新定义__FILE__
 define_filename_macro(tarsutil)
@@ -37,7 +37,7 @@ target_compile_definitions(tarsutil
     PUBLIC ${COMPILE_DEFINITIONS}
 )
 target_compile_options(tarsutil
-    PRIVATE ${COMPILE_OPTIONS_DEFAULT}
+    PRIVATE ${DEFAULT_COMPILE_OPTIONS}
 )
 target_link_libraries(tarsutil
     PUBLIC ${LINK_LIBRARIES}

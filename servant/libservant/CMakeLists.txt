@@ -16,7 +16,7 @@ add_dependencies(tarsservant COPY-SERVENT-TARS)
 define_filename_macro(tarsservant)
 
 target_compile_options(tarsservant
-    PRIVATE ${COMPILE_OPTIONS_DEFAULT}
+    PRIVATE ${DEFAULT_COMPILE_OPTIONS}
 )
 target_link_libraries(tarsservant
     PUBLIC tarsutil

@@ -3,7 +3,7 @@ macro(build_tars_server MODULE DEPS)
 
     project(${MODULE})
 
-    include_directories(./)
+    #include_directories(./)
 
     FILE(GLOB_RECURSE DIR_SRCS "*.cpp")
 
@@ -45,7 +45,7 @@ macro(build_tars_server MODULE DEPS)
         
     elseif(PB_LIST)
         set(CLEAN_LIST)
-        set(_PROTOBUF_PROTOC ${CMAKE_BINARY_DIR}/src/protobuf/bin/protoc)
+        set(_PROTOBUF_PROTOC ${3RDPARTY_DIR}/protobuf/bin/protoc)
 
         foreach (PB_SRC ${PB_LIST})
             get_filename_component(NAME_WE ${PB_SRC} NAME_WE)
@@ -84,23 +84,35 @@ macro(build_tars_server MODULE DEPS)
         add_dependencies(${MODULE} ${DEP_LIST} tarsservant tarsutil)
     endif()
 
-    target_link_libraries(${MODULE} tarsservant tarsutil)
+    #重新定义__FILE__
+    define_filename_macro(${MODULE})
+
+    set(CUR_INCLUDE_DIRECTORIES .)
+    set(CUR_LINK_LIBRARIES tarsservant tarsutil)
+
+    target_compile_options(${MODULE}
+        PRIVATE ${DEFAULT_COMPILE_OPTIONS}
+    )
+    target_include_directories(${MODULE}
+        PRIVATE ${CUR_INCLUDE_DIRECTORIES}
+    )
 
     if(TARS_SSL)
-        target_link_libraries(${MODULE} tarsservant tarsutil ${LIB_SSL} ${LIB_CRYPTO})
-
-        if(WIN32)
-            target_link_libraries(${MODULE} Crypt32)
-        endif()
+        list(APPEND CUR_LINK_LIBRARIES ${LIB_SSL} ${LIB_CRYPTO})
     endif()
-
     if(TARS_HTTP2)
-        target_link_libraries(${MODULE} ${LIB_HTTP2} ${LIB_PROTOBUF})
+        list(APPEND CUR_LINK_LIBRARIES ${LIB_HTTP2} ${LIB_PROTOBUF})
     endif()
-
     if(TARS_GPERF)
-        target_link_libraries(${MODULE} ${LIB_GPERF})
+        list(APPEND CUR_LINK_LIBRARIES ${LIB_GPERF})
     endif(TARS_GPERF)
+
+    #链接
+    if (LINUX)
+        target_link_libraries(${MODULE} -Wl,--start-group ${CUR_LINK_LIBRARIES} -Wl,--end-group)
+    else ()
+        target_link_libraries(${MODULE} ${CUR_LINK_LIBRARIES})
+    endif ()
 
     SET(MODULE-TGZ "${CMAKE_BINARY_DIR}/${MODULE}.tgz")
     SET(RUN_DEPLOY_COMMAND_FILE "${PROJECT_BINARY_DIR}/run-deploy-${MODULE}.cmake")

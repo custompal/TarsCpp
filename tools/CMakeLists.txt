@@ -22,7 +22,7 @@ function(tars2language TARGET)
     add_executable(${TARGET} ${DIR_SRCS})
     define_filename_macro(${TARGET})
     target_compile_options(${TARGET}
-        PRIVATE ${COMPILE_OPTIONS_DEFAULT}
+        PRIVATE ${DEFAULT_COMPILE_OPTIONS}
     )
     if (LINUX)
         target_link_libraries(${TARGET} -Wl,--start-group tarsparse -Wl,--end-group)

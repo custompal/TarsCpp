@@ -34,7 +34,7 @@ add_library(${TARGETNAME} ${DIR_SRCS} ${DEPENDS_SRC_LIST})
 define_filename_macro(${TARGETNAME})
 
 target_compile_options(${TARGETNAME}
-    PRIVATE ${COMPILE_OPTIONS_DEFAULT}
+    PRIVATE ${DEFAULT_COMPILE_OPTIONS}
 )
 target_link_libraries(${TARGETNAME}
     PUBLIC tarsutil
