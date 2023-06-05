@@ -55,7 +55,7 @@ endif ()
 # get_version(major minor patch)
 
 # set(TARS_VERSION ${major}.${minor}.${patch})
-set(TARS_VERSION "3.0.14")
+set(TARS_VERSION "3.0.15")
 update_cached_list(TARSCPP_COMPILE_DEFINITIONS TARS_VERSION="${TARS_VERSION}")
 message("TARS_VERSION:              ${TARS_VERSION}")
 
